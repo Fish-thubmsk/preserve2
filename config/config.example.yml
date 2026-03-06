@@ -1,0 +1,53 @@
+# config/config.example.yml
+# 复制此文件为 config.yml 并根据实际情况修改
+
+# 目标日期模式：
+# - "tomorrow": 预约明天的座位（根据当前日期自动计算）
+# - "date": 指定具体日期（配合 target_date 使用）
+target_date_mode: "tomorrow"
+
+# 当 target_date_mode 为 "date" 时使用，格式：YYYY-MM-DD
+target_date: "2026-03-10"
+
+# 预约时间段（格式：HH:MM）
+# 参考图书馆营业时间，通常为 07:00 - 22:30
+time_range:
+  start: "08:00"
+  end: "22:30"
+
+# 座位优先级列表（按顺序尝试，每项为座位号字符串）
+# 座位号需与系统一致（可能包含前导零，如 "014"）
+seat_ids:
+  - "014"
+  - "015"
+  - "016"
+
+# 区域/房间参数
+# 以下值需根据实际抓包数据或手动操作时的 URL 参数填写
+area:
+  # fidEnc / deptIdEnc：系统内部的加密功能ID / 部门ID
+  # 通常在 URL 参数或页面 HTML 中可找到，示例值仅供参考
+  fid_enc: "4a18e12602b24c8c"
+  dept_id_enc: "4a18e12602b24c8c"
+  # 房间 ID（整数）
+  room_id: 13481
+  # 地理分级名称（与系统一致）
+  first_level_name: "郑东校区"
+  second_level_name: "3楼"
+  third_level_name: "西阅览区"
+
+# 运行行为参数
+behavior:
+  # 最多尝试的座位数量（超过后停止）
+  max_seats_to_try: 5
+  # 每个座位之间的最小间隔（秒），避免过于频繁请求
+  interval_seconds_between_seats: 0.5
+  # 单次请求超时时间（秒）
+  request_timeout: 15
+
+# 日志配置
+logging:
+  # 日志级别：DEBUG / INFO / WARNING / ERROR
+  level: "INFO"
+  # 日志输出文件（留空则仅输出到控制台）
+  file: "reserve.log"
