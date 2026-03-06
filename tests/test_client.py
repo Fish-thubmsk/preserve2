@@ -119,3 +119,58 @@ class TestFetchSelectPageEnc:
                     day="2026-03-07",
                     fid_enc="4a18e12602b24c8c",
                 )
+
+
+class TestComputeEnc:
+    """Tests for the enc computation used when submitting a reservation."""
+
+    def test_matches_real_har_data(self):
+        """Verify enc computation against captured real-world data from session.har."""
+        form_data = {
+            "deptIdEnc": "4a18e12602b24c8c",
+            "roomId": "13481",
+            "startTime": "12:00",
+            "endTime": "22:30",
+            "day": "2026-03-06",
+            "seatNum": "014",
+            "captcha": "",
+            "wyToken": "",
+        }
+        submit_enc = "baea60c55f554ce7ab3c43f952228d7e_238771432"
+        expected_enc = "bd8b8ff5d7c60d7add50fcbcf4017274"
+
+        result = ReservationClient._compute_enc(form_data, submit_enc)
+        assert result == expected_enc
+
+    def test_sorted_order_is_key(self):
+        """Enc computation should be based on alphabetically sorted keys."""
+        # Same params in different insertion order should yield the same enc
+        form_data_a = {
+            "roomId": "100",
+            "day": "2026-01-01",
+            "captcha": "",
+            "wyToken": "",
+        }
+        form_data_b = {
+            "captcha": "",
+            "wyToken": "",
+            "roomId": "100",
+            "day": "2026-01-01",
+        }
+        submit_enc = "sometoken_123"
+        assert ReservationClient._compute_enc(form_data_a, submit_enc) == \
+               ReservationClient._compute_enc(form_data_b, submit_enc)
+
+    def test_different_submit_enc_gives_different_enc(self):
+        """Different submit_enc values must produce different enc outputs."""
+        form_data = {"roomId": "100", "day": "2026-01-01"}
+        enc1 = ReservationClient._compute_enc(form_data, "token_a_123")
+        enc2 = ReservationClient._compute_enc(form_data, "token_b_456")
+        assert enc1 != enc2
+
+    def test_enc_is_32_char_hex(self):
+        """Output should be a 32-character lowercase hex string (MD5)."""
+        result = ReservationClient._compute_enc({"roomId": "1"}, "tok_1")
+        assert len(result) == 32
+        assert result == result.lower()
+        assert all(c in "0123456789abcdef" for c in result)

@@ -3,6 +3,7 @@ lib/client.py - HTTP 请求客户端封装
 """
 import logging
 import time
+from hashlib import md5
 from typing import Any, Dict, Optional
 
 import requests
@@ -83,6 +84,22 @@ class ReservationClient:
         resp.raise_for_status()
         self._check_auth(resp)
         return resp
+
+    @staticmethod
+    def _compute_enc(form_data: Dict[str, str], submit_enc: str) -> str:
+        """
+        计算预约提交所需的 enc 参数。
+
+        算法：将表单字段按键名排序后格式化为 ``[key=value]``，
+        最后追加 ``[submit_enc_value]``，对整个字符串做 MD5。
+
+        :param form_data: 不含 enc 字段的表单数据（值均为字符串）
+        :param submit_enc: 从 HTML 页面提取的 submit_enc 原始值
+        :returns: 32 位小写十六进制 MD5 字符串
+        """
+        parts = ["[" + k + "=" + v + "]" for k, v in sorted(form_data.items())]
+        parts.append("[" + submit_enc + "]")
+        return md5("".join(parts).encode("utf-8")).hexdigest()
 
     @staticmethod
     def _check_auth(resp: requests.Response) -> None:
@@ -256,13 +273,13 @@ class ReservationClient:
         day: str,
         start_time: str,
         end_time: str,
-        enc: str,
+        submit_enc: str,
         fid_enc: str,
     ) -> Dict[str, Any]:
         """
         提交座位预约（POST /data/apps/seat/submit）。
 
-        :param enc: 从 fetch_select_page_enc() 获取的 submit_enc 值
+        :param submit_enc: 从 fetch_select_page_enc() 获取的 submit_enc 原始值（含 ``_{uid}`` 后缀）
         :returns: API 响应的 JSON dict
         :raises AuthError: 登录态失效
         :raises requests.HTTPError: HTTP 层面的错误
@@ -282,19 +299,20 @@ class ReservationClient:
                 "sec-fetch-dest": "empty",
             }
         )
+        form_data = {
+            "deptIdEnc": dept_id_enc,
+            "roomId": str(room_id),
+            "startTime": start_time,
+            "endTime": end_time,
+            "day": day,
+            "seatNum": seat_num,
+            "captcha": "",
+            "wyToken": "",
+        }
+        form_data["enc"] = self._compute_enc(form_data, submit_enc)
         resp = self._post(
             "/data/apps/seat/submit",
-            data={
-                "deptIdEnc": dept_id_enc,
-                "roomId": str(room_id),
-                "startTime": start_time,
-                "endTime": end_time,
-                "day": day,
-                "seatNum": seat_num,
-                "captcha": "",
-                "wyToken": "",
-                "enc": enc,
-            },
+            data=form_data,
         )
         return resp.json()
 

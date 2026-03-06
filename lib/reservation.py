@@ -195,7 +195,7 @@ class ReservationSession:
                 day=cfg.day,
                 start_time=cfg.start_time,
                 end_time=cfg.end_time,
-                enc=enc,
+                submit_enc=enc,
                 fid_enc=cfg.fid_enc,
             )
         except AuthError:
